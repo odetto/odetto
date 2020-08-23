@@ -1,0 +1,4 @@
+type Movie {
+    name: String -> Int
+    -desc
+}
