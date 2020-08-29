@@ -1,4 +1,9 @@
 type Movie {
     name: String -> Int
     -desc
+    +comments: [Comment]!
+}
+
+type Comment {
+    userId: ID
 }
