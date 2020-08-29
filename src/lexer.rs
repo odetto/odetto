@@ -1,4 +1,4 @@
-use std::iter::Peekable;
+use std::iter::{Peekable};
 use std::str::{Chars};
 
 
@@ -48,6 +48,35 @@ impl Token {
     }
 }
 
+pub struct TokenIter<'a> {
+    iter: std::slice::Iter<'a, Token>,
+}
+
+#[derive(Clone, Debug)]
+pub struct Tokens {
+    tokens: Vec<Token>
+}
+
+impl<'a> IntoIterator for &'a Tokens {
+    type Item = &'a Token;
+    type IntoIter = TokenIter<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        TokenIter {
+            iter: self.tokens.iter()
+        }
+    }
+}
+
+impl<'a> Iterator for TokenIter<'a> {
+    type Item = &'a Token;
+
+    // just return the str reference
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next()
+    }
+}
+
 pub struct Lexer<'a> {
     chars: Peekable<Chars<'a>>,
     index: usize,
@@ -61,21 +90,21 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    pub fn run(&mut self) -> Vec<Token> {
+    pub fn run(&mut self) -> Tokens {
         let mut tokens = Vec::new();
 
         loop {
             let next = self.next();
 
             if let TokenType::EOF = next.t {
-                tokens.push(next);
+                tokens.push(next.clone());
                 break;
             } else {
-                tokens.push(next);
+                tokens.push(next.clone());
             }
         }
 
-        tokens
+        Tokens { tokens }
     }
 
     fn next(&mut self) -> Token {
@@ -180,6 +209,7 @@ impl<'a> Lexer<'a> {
 
         while is_special_identifier(self.peek()) {
             let c = *self.peek().unwrap();
+            println!("{}", c);
 
             if end - start > 0 && !special_regex.is_match(&c.to_string()) {
                 break;

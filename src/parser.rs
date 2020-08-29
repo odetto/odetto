@@ -3,7 +3,7 @@ use std::fmt;
 use std::iter::Peekable;
 
 use crate::{
-    lexer::{Token}
+    lexer::{Token, Tokens, TokenIter}
 };
 
 #[derive(Debug)]
@@ -28,27 +28,27 @@ pub struct TypeDef {
     fields: Vec<FieldDef>
 }
 
-pub struct Parser {
-    tokens: Peekable<Vec<Token>>
+pub struct Parser<'a> {
+    tokens: Peekable<TokenIter<'a>>
 }
 
-impl Parser {
-    pub fn new(tokens: Vec<Token>) -> Parser {
+impl<'a> Parser<'a> {
+    pub fn new(tokens: &'a Tokens) -> Parser<'a> {
         Parser {
-            tokens
+            tokens: tokens.into_iter().peekable()
         }
     }
 
     pub fn parse(&mut self) -> Result<Vec<TypeDef>, ParseError> {
+        // @todo load config from yml
         let mut defs = Vec::new();
 
         loop {
             let next = self.next();
 
-            if next.is_none() {
-                return Err(ParseError);
-            } else {
-                defs.push(next.unwrap());
+            match next {
+                Some(n) => defs.push(n),
+                None => return Err(ParseError)
             }
         }
     }
@@ -57,7 +57,7 @@ impl Parser {
         let mut t = if let Some(c) = self.tokens.peek() {
             *c
         } else {
-            return Token::eof(self.index);
+            return None;
         };
         Some(TypeDef { fields: Vec::new() })
     }

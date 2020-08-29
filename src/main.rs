@@ -8,13 +8,14 @@ fn main() -> Result<(), Box<dyn std::error::Error + 'static>> {
 
     let mut l = lexer::Lexer::new(contents.as_str());
     let tokens = l.run();
-    let mut p = parser::Parser::new(tokens);
-    let output = p.parse();
+    println!("{:?}", tokens);
+    // let mut p = parser::Parser::new(&tokens);
+    // let output = p.parse();
 
-    match output {
-        Ok(o) => println!("{:?}", o),
-        Err(e) => println!("{:?}", e)
-    }
+    // match output {
+    //     Ok(o) => println!("{:?}", o),
+    //     Err(e) => println!("{:?}", e)
+    // }
 
     Ok(())
 }
