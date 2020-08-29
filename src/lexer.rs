@@ -21,6 +21,8 @@ pub enum TokenType {
 
     ParenL,
     ParenR,
+    CurlyL,
+    CurlyR,
     BracketL,
     BracketR,
 
@@ -83,13 +85,9 @@ impl<'a> Lexer<'a> {
             return Token::eof(self.index);
         };
 
-        println!("{} at index: {}", c, self.index);
-
         while WHITESPACE.contains(&c) {
             let next_char = self.advance();
-            println!("newC {:?}", next_char);
             if next_char == None || self.peek() == None {
-                println!("get out of there!");
                 return Token::eof(self.index);
             }
 
@@ -115,8 +113,10 @@ impl<'a> Lexer<'a> {
             '!' => Token { t: TokenType::OpExclamation, value: String::new(), loc },
             '(' => Token { t: TokenType::ParenL, value: String::new(), loc },
             ')' => Token { t: TokenType::ParenR, value: String::new(), loc },
-            '{' => Token { t: TokenType::BracketL, value: String::new(), loc },
-            '}' => Token { t: TokenType::BracketR, value: String::new(), loc },
+            '{' => Token { t: TokenType::CurlyL, value: String::new(), loc },
+            '}' => Token { t: TokenType::CurlyR, value: String::new(), loc },
+            '[' => Token { t: TokenType::BracketL, value: String::new(), loc },
+            ']' => Token { t: TokenType::BracketR, value: String::new(), loc },
             ':' => Token { t: TokenType::Colon, value: String::new(), loc },
             _ => Token { t: TokenType::Unknown, value: String::new(), loc }
         };
@@ -202,7 +202,7 @@ impl<'a> Lexer<'a> {
 
 fn is_valid_identifier(c: Option<&char>) -> bool {
     if let Some(c) = c {
-        regex::Regex::new(r"[^\s\n\r0-9\+-/\*\^!\(\)\{\}=\.,:;|]")
+        regex::Regex::new(r"[^\s\n\r0-9\+-/\*\^!\(\)\{\}=\.,:;|\[\]]")
             .unwrap()
             .is_match(&c.to_string())
     } else {
