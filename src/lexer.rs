@@ -85,6 +85,7 @@ pub struct Lexer<'a> {
 impl<'a> Lexer<'a> {
     pub fn new(src: &str) -> Lexer {
         Lexer {
+            // @todo keep original string to recreate iter at location in `back` function
             chars: src.chars().peekable(),
             index: 0,
         }

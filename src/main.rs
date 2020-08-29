@@ -8,6 +8,7 @@ fn main() -> Result<(), Box<dyn std::error::Error + 'static>> {
 
     let mut l = lexer::Lexer::new(contents.as_str());
     let tokens = l.run();
+    // @fixnow lexer is skipping after - sign? 
     println!("{:?}", tokens);
     // let mut p = parser::Parser::new(&tokens);
     // let output = p.parse();

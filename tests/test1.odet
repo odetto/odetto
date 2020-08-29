@@ -1,3 +1,5 @@
+type Movie
+
 type Movie {
     name: String -> Int
     -desc
