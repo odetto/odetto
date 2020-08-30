@@ -1,0 +1,11 @@
+type Movie {
+    name: String
+    description: String
+    rating: Int
+    comments: [Comment]
+}
+
+type Comment {
+    id: Int
+    text: String
+}

@@ -1,0 +1,5 @@
+type Movie {
+    name: String
+    description: String
+    rating: Int
+}

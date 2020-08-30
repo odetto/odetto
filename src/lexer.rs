@@ -34,9 +34,9 @@ pub enum TokenType {
 
 #[derive(Clone, Debug)]
 pub struct Token {
-    t: TokenType,
-    value: String,
-    loc: (usize, usize) // @todo look into getting col and row for location
+    pub t: TokenType,
+    pub value: String,
+    pub loc: (usize, usize) // @todo look into getting col and row for location
 }
 
 impl Token {
