@@ -1,6 +1,6 @@
 use std::iter::{Peekable};
 use std::str::{Chars};
-
+use std::fmt;
 
 #[derive(Clone, Debug)]
 pub enum TokenType {
@@ -48,6 +48,13 @@ impl Token {
     }
 }
 
+impl fmt::Display for Token {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        
+        write!(f, "{:?} : ({}, {}), value = {}\n", self.t, self.loc.0, self.loc.1, self.value)
+    }
+}
+
 pub struct TokenIter<'a> {
     iter: std::slice::Iter<'a, Token>,
 }
@@ -55,6 +62,28 @@ pub struct TokenIter<'a> {
 #[derive(Clone, Debug)]
 pub struct Tokens {
     tokens: Vec<Token>
+}
+
+impl fmt::Display for Tokens {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let vec = &self.tokens;
+
+        write!(f, "[\n")?;
+
+        // Iterate over `v` in `vec` while enumerating the iteration
+        // count in `count`.
+        for (_, v) in vec.iter().enumerate() {
+            let mut value = String::new();
+            if v.value.len() > 0 {
+                value = format!(", value = '{}'", v.value);
+            }
+            write!(f, "\t{:?}: ({}, {}){}\n", v.t, v.loc.0, v.loc.1, value)?;
+        }
+
+        // Close the opened bracket and return a fmt::Result value.
+        write!(f, "]\n")
+        
+    }
 }
 
 impl<'a> IntoIterator for &'a Tokens {
@@ -78,6 +107,7 @@ impl<'a> Iterator for TokenIter<'a> {
 }
 
 pub struct Lexer<'a> {
+    orginal: &'a str,
     chars: Peekable<Chars<'a>>,
     index: usize,
 }
@@ -85,7 +115,7 @@ pub struct Lexer<'a> {
 impl<'a> Lexer<'a> {
     pub fn new(src: &str) -> Lexer {
         Lexer {
-            // @todo keep original string to recreate iter at location in `back` function
+            orginal: src,
             chars: src.chars().peekable(),
             index: 0,
         }
@@ -124,6 +154,28 @@ impl<'a> Lexer<'a> {
             c = *self.peek().unwrap();
         }
 
+        if c == '#' {
+            while !NEW_LINE.contains(&c)  {
+                let next_char = self.advance();
+                if next_char == None || self.peek() == None {
+                    return Token::eof(self.index);
+                }
+
+                c = *self.peek().unwrap();
+            }
+
+            while WHITESPACE.contains(&c) {
+                let next_char = self.advance();
+                if next_char == None || self.peek() == None {
+                    return Token::eof(self.index);
+                }
+
+                c = *self.peek().unwrap();
+            }
+        }
+
+        println!("should not be here: {}", c);
+
         if is_special_identifier(Some(&c)) {
             if let Some(si) = self.next_special_identifier() {
                 return si;
@@ -148,7 +200,7 @@ impl<'a> Lexer<'a> {
             '[' => Token { t: TokenType::BracketL, value: String::new(), loc },
             ']' => Token { t: TokenType::BracketR, value: String::new(), loc },
             ':' => Token { t: TokenType::Colon, value: String::new(), loc },
-            _ => Token { t: TokenType::Unknown, value: String::new(), loc }
+            _ => Token { t: TokenType::Unknown, value: c.to_string(), loc }
         };
 
         self.advance();
@@ -167,6 +219,7 @@ impl<'a> Lexer<'a> {
 
     fn back(&mut self, index: usize) {
         self.index = index;
+        self.chars = self.orginal.chars().peekable();
         self.chars.nth(index);
     }
 
@@ -210,7 +263,6 @@ impl<'a> Lexer<'a> {
 
         while is_special_identifier(self.peek()) {
             let c = *self.peek().unwrap();
-            println!("{}", c);
 
             if end - start > 0 && !special_regex.is_match(&c.to_string()) {
                 break;
@@ -224,7 +276,7 @@ impl<'a> Lexer<'a> {
         match value.as_ref() {
             "->" => Some(Token { t: TokenType::OpArrow, value, loc: (start, end) }),
             _ => {
-                self.back(start);
+                self.back(start - 1);
                 None
             }
         }
@@ -233,7 +285,7 @@ impl<'a> Lexer<'a> {
 
 fn is_valid_identifier(c: Option<&char>) -> bool {
     if let Some(c) = c {
-        regex::Regex::new(r"[^\s\n\r0-9\+-/\*\^!\(\)\{\}=\.,:;|\[\]]")
+        regex::Regex::new(r"[^\s\n\r0-9\+-/\*\^!#\(\)\{\}=\.,:;|\[\]]")
             .unwrap()
             .is_match(&c.to_string())
     } else {
@@ -252,3 +304,4 @@ fn is_special_identifier(c: Option<&char>) -> bool {
 }
 
 const WHITESPACE: [char; 4] = [' ', '\n', '\r', '\t'];
+const NEW_LINE: [char; 2] = ['\n', '\r'];
