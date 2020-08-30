@@ -6,6 +6,7 @@ type Movie {
     +comments: [Comment]!
 }
 
+# A cool comment
 type Comment {
-    userId: ID
+    userId: ID # comment on a line
 }
