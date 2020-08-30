@@ -27,6 +27,7 @@ pub enum TokenType {
     BracketR,
 
     Colon,
+    DocString,
 
     EOF,
 }
@@ -69,9 +70,6 @@ impl fmt::Display for Tokens {
         let vec = &self.tokens;
 
         write!(f, "[\n")?;
-
-        // Iterate over `v` in `vec` while enumerating the iteration
-        // count in `count`.
         for (_, v) in vec.iter().enumerate() {
             let mut value = String::new();
             if v.value.len() > 0 {
@@ -79,8 +77,6 @@ impl fmt::Display for Tokens {
             }
             write!(f, "\t{:?}: ({}, {}){}\n", v.t, v.loc.0, v.loc.1, value)?;
         }
-
-        // Close the opened bracket and return a fmt::Result value.
         write!(f, "]\n")
         
     }
@@ -154,6 +150,27 @@ impl<'a> Lexer<'a> {
             c = *self.peek().unwrap();
         }
 
+        if c == '"' {
+            if let Some(co) = self.next_doc_string() {
+                return co;
+            }
+            // look for string literal here later?
+            let next_char = self.advance();
+            if next_char == None || self.peek() == None {
+                return Token::eof(self.index);
+            }
+
+            c = *self.peek().unwrap();
+            while WHITESPACE.contains(&c) {
+                let next_char = self.advance();
+                if next_char == None || self.peek() == None {
+                    return Token::eof(self.index);
+                }
+
+                c = *self.peek().unwrap();
+            }
+        }
+
         if c == '#' {
             while !NEW_LINE.contains(&c)  {
                 let next_char = self.advance();
@@ -216,9 +233,9 @@ impl<'a> Lexer<'a> {
     }
 
     fn back(&mut self, index: usize) {
-        self.index = index;
+        self.index = index - 1;
         self.chars = self.orginal.chars().peekable();
-        self.chars.nth(index);
+        self.chars.nth(index - 1);
     }
 
     fn next_identifier(&mut self) -> Token {
@@ -274,16 +291,97 @@ impl<'a> Lexer<'a> {
         match value.as_ref() {
             "->" => Some(Token { t: TokenType::OpArrow, value, loc: (start, end) }),
             _ => {
-                self.back(start - 1);
+                self.back(start);
                 None
             }
         }
+    }
+
+    fn next_doc_string(&mut self) -> Option<Token> {
+        let start = self.index;
+        let mut end = start;
+        let mut value = String::new();
+
+        while is_quote(self.peek()) && value.len() < 3 {
+            let c = *self.peek().unwrap();
+
+            if end - start > 0 && c != '"' {
+                break;
+            }
+
+            end += 1;
+            value.push(c);
+            self.advance();
+        }
+
+        if value != "\"\"\"" {
+            self.back(start);
+            return None;
+        }
+
+        // while not new triple quote save chars into string
+        let mut doc_string = String::new();
+        value = String::new();
+        
+        let start_doc = self.index;
+
+        while value != "\"\"\"" {
+            let c = if let Some(c) = self.peek() {
+                *c
+            } else {
+                return None;
+            };
+
+            let index = self.index;
+            if c == '"' {
+                // try to find end of doc string
+                value.push(c);
+                self.advance();
+                let c1 = if let Some(c) = self.peek() {
+                    *c
+                } else {
+                    return None;
+                };
+                if c1 == '"' {
+                    value.push(c1);
+                    self.advance();
+                    let c2 = if let Some(c) = self.peek() {
+                        *c
+                    } else {
+                        return None;
+                    };
+                    if c2 == '"' {
+                        value.push(c2);
+                        self.advance();
+                        break;
+                    } else {
+                        value = String::new();
+                        self.back(index + 1); // go back to after the first quote
+                    }
+                } else {
+                    value = String::new();
+                    self.back(index + 1); // go back to after the first quote
+                }
+            }
+
+            end += 1;
+            doc_string.push(c);
+            self.advance();
+        }
+
+        let trimmed = doc_string.trim().to_string();
+
+        if trimmed.len() == 0 {
+            return None;
+        }
+
+        Some(Token { t: TokenType::DocString, value: trimmed, loc: (start_doc, end)})
     }
 }
 
 fn is_valid_identifier(c: Option<&char>) -> bool {
     if let Some(c) = c {
-        regex::Regex::new(r"[^\s\n\r0-9\+-/\*\^!#\(\)\{\}=\.,:;|\[\]]")
+        regex::Regex::new(r#"[^\s\n\r0-9\+-/\*\^!#\(\)\{\}=\.,:;|"'\[\]]"#)
             .unwrap()
             .is_match(&c.to_string())
     } else {
@@ -296,6 +394,14 @@ fn is_special_identifier(c: Option<&char>) -> bool {
         regex::Regex::new(r"[->]")
             .unwrap()
             .is_match(&c.to_string())
+    } else {
+        false
+    }
+}
+
+fn is_quote(c: Option<&char>) -> bool {
+    if let Some(c) = c {
+        return c == &'"';
     } else {
         false
     }
@@ -317,7 +423,7 @@ mod tests {
     }
 
     #[test]
-    fn test_token_types() {
+    fn token_types() {
         let mut l = Lexer::new("+-*/!->()[]{}:");
         let tokens = l.run();
         let expected = vec![
@@ -349,6 +455,36 @@ mod tests {
             TokenType::Literal,
             TokenType::EOF,
         ];
+
+        match_tokens(tokens, expected);
+    }
+
+    #[test]
+    fn doc_strings() {
+        let mut l = Lexer::new(r#"type Movie """\n  \t  it's "" so good to be here\n""" "#);
+        let tokens = l.run();
+        let expected = vec![
+            TokenType::KeyType,
+            TokenType::Literal,
+            TokenType::DocString,
+            TokenType::EOF,
+        ];
+
+        match_tokens(tokens, expected);
+    }
+    #[test]
+    fn empty_doc_string() {
+        let mut l = Lexer::new(r#"blah blah """""" 
+             empty "#);
+        let tokens = l.run();
+        let expected = vec![
+            TokenType::Literal,
+            TokenType::Literal,
+            TokenType::Literal,
+            TokenType::EOF,
+        ];
+
+        println!("{}", tokens);
 
         match_tokens(tokens, expected);
     }

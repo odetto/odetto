@@ -10,3 +10,13 @@ type Movie {
 type Comment {
     userId: ID # comment on a line
 }
+
+""""""
+type User {
+    name: String
+    age: Int
+    """
+    what's up fam "" Just commin to you in the doc string
+    """
+    fart_size: Int
+}
