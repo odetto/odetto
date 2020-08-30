@@ -174,8 +174,6 @@ impl<'a> Lexer<'a> {
             }
         }
 
-        println!("should not be here: {}", c);
-
         if is_special_identifier(Some(&c)) {
             if let Some(si) = self.next_special_identifier() {
                 return si;
