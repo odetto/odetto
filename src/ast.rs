@@ -3,7 +3,7 @@
 #[derive(Clone, Debug)]
 pub struct Root {
     pub types: Vec<ModelTypeDef>,
-    // literal_reference: Vec<String> // possibly just put this on the parser but might be handy? Could also possibly use Box as a pointer to an tree node? 
+    // Identifier_reference: Vec<String> // possibly just put this on the parser but might be handy? Could also possibly use Box as a pointer to an tree node? 
 }
 
 impl Root {

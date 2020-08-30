@@ -5,7 +5,7 @@ use std::fmt;
 #[derive(Clone, Debug, PartialEq)]
 pub enum TokenType {
     Unknown,
-    Literal,
+    Identifier,
 
     KeyType,
 
@@ -154,7 +154,7 @@ impl<'a> Lexer<'a> {
             if let Some(co) = self.next_doc_string() {
                 return co;
             }
-            // look for string literal here later?
+            // look for string Identifier here later?
             let next_char = self.advance();
             if next_char == None || self.peek() == None {
                 return Token::eof(self.index);
@@ -260,7 +260,7 @@ impl<'a> Lexer<'a> {
             "type" => TokenType::KeyType,
             "Int" => TokenType::TInt,
             "String" => TokenType::TString,
-            _ => TokenType::Literal,
+            _ => TokenType::Identifier,
         };
 
         Token {
@@ -451,8 +451,8 @@ mod tests {
         let mut l = Lexer::new("# hello tests! I am here -> () #\n testing token # inline comment to eof");
         let tokens = l.run();
         let expected = vec![
-            TokenType::Literal,
-            TokenType::Literal,
+            TokenType::Identifier,
+            TokenType::Identifier,
             TokenType::EOF,
         ];
 
@@ -465,7 +465,7 @@ mod tests {
         let tokens = l.run();
         let expected = vec![
             TokenType::KeyType,
-            TokenType::Literal,
+            TokenType::Identifier,
             TokenType::DocString,
             TokenType::EOF,
         ];
@@ -478,9 +478,9 @@ mod tests {
              empty "#);
         let tokens = l.run();
         let expected = vec![
-            TokenType::Literal,
-            TokenType::Literal,
-            TokenType::Literal,
+            TokenType::Identifier,
+            TokenType::Identifier,
+            TokenType::Identifier,
             TokenType::EOF,
         ];
 

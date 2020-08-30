@@ -3,19 +3,8 @@ use std::iter::Peekable;
 use crate::{
     _helpers::{ParseError, ParseResult, TokenInfo},
     lexer::{Token, Tokens, TokenIter, TokenType},
-    ast::{Root, ModelTypeDef},
+    ast::{Root, ModelTypeDef, FieldDef},
 };
-
-#[derive(Debug)]
-pub struct FieldDef {
-    name: Token,
-    field_type: Token,
-}
-
-#[derive(Debug)]
-pub struct TypeDef {
-    fields: Vec<FieldDef>
-}
 
 pub struct Parser<'a> {
     tokens: Peekable<TokenIter<'a>>
@@ -61,12 +50,12 @@ impl<'a> Parser<'a> {
         token = if let Some(t) = self.tokens.peek() {
             *t
         } else {
-            // expected literal but there was nothing
+            // expected Identifier but there was nothing
             return Err(ParseError::GenericError(TokenInfo { loc: token.loc }))
         };
 
-        if token.t != TokenType::Literal {
-            // expected literal but got <tokentype>
+        if token.t != TokenType::Identifier {
+            // expected Identifier but got <tokentype>
             return Err(ParseError::GenericError(TokenInfo { loc: token.loc }))
         }
 
@@ -86,11 +75,73 @@ impl<'a> Parser<'a> {
             return Err(ParseError::GenericError(TokenInfo { loc: token.loc }))
         }
 
-        // find model pattern 
+        self.tokens.next();
 
-        // let fields = self.get_fields();
+        let fields = self.get_fields()?;
 
-        Ok(Some(ModelTypeDef { name, fields: Vec::new() }))
+        Ok(Some(ModelTypeDef { name, fields }))
+    }
+
+    fn get_fields(&mut self) -> ParseResult<Vec<FieldDef>> {
+        let mut fields = Vec::new();
+
+        let mut token = if let Some(t) = self.tokens.peek() {
+            *t
+        } else {
+            return Err(ParseError::NoFieldsError);
+        };
+
+        while token.t != TokenType::CurlyR {
+            if token.t != TokenType::Identifier {
+                return Err(ParseError::GenericError(TokenInfo { loc: token.loc }))
+            }
+
+            let name = token.value.clone();
+
+            self.tokens.next();
+
+            token = if let Some(t) = self.tokens.peek() {
+                *t
+            } else {
+                // no type for field
+                return Err(ParseError::GenericError(TokenInfo { loc: token.loc }));
+            };
+
+            if token.t != TokenType::Colon {
+                // need colon to indicate type
+                return Err(ParseError::GenericError(TokenInfo { loc: token.loc }));
+            }
+
+            self.tokens.next();
+
+            token = if let Some(t) = self.tokens.peek() {
+                *t
+            } else {
+                // no type for field
+                return Err(ParseError::GenericError(TokenInfo { loc: token.loc }));
+            };
+
+            if !token_is_type(&token) {
+                // type does not exist in context
+                return Err(ParseError::GenericError(TokenInfo { loc: token.loc }));
+            }
+
+            let field_type = token.value.clone();
+
+            fields.push(FieldDef { name, field_type });
+
+            self.tokens.next();
+
+            token = if let Some(t) = self.tokens.peek() {
+                *t
+            } else {
+                // no curly brace to end it
+                return Err(ParseError::GenericError(TokenInfo { loc: token.loc }));
+            };
+        }
+       
+
+        Ok(fields)
     }
 
     // fn peek(&mut self) -> Option<&char> {
@@ -107,4 +158,8 @@ impl<'a> Parser<'a> {
     //     self.chars = self.orginal.chars().peekable();
     //     self.chars.nth(index - 1);
     // }
+}
+
+fn token_is_type(token: &Token) -> bool {
+    token.t == TokenType::TInt || token.t == TokenType::TString
 }
