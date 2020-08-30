@@ -35,7 +35,7 @@ pub enum TokenType {
 pub struct Token {
     t: TokenType,
     value: String,
-    loc: (usize, usize)
+    loc: (usize, usize) // @todo look into getting col and row for location
 }
 
 impl Token {
