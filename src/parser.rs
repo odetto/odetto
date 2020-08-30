@@ -28,7 +28,12 @@ impl<'a> Parser<'a> {
                 Some(n) => root.types.push(n),
                 None => break,
             }
-            break;
+
+            if let Some(n) = self.tokens.peek() {
+                if n.t == TokenType::EOF {
+                    break;
+                }
+            }
         }
 
         Ok(root)
@@ -140,6 +145,7 @@ impl<'a> Parser<'a> {
             };
         }
        
+        self.tokens.next();
 
         Ok(fields)
     }

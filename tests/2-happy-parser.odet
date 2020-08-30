@@ -3,3 +3,8 @@ type Movie {
     description: String
     rating: Int
 }
+
+type Comment {
+    id: Int
+    text: String
+}
