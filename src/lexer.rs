@@ -2,7 +2,7 @@ use std::iter::{Peekable};
 use std::str::{Chars};
 use std::fmt;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum TokenType {
     Unknown,
     Literal,
@@ -303,3 +303,53 @@ fn is_special_identifier(c: Option<&char>) -> bool {
 
 const WHITESPACE: [char; 4] = [' ', '\n', '\r', '\t'];
 const NEW_LINE: [char; 2] = ['\n', '\r'];
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn match_tokens(tokens: Tokens, expected: Vec<TokenType>) {
+        let mut expected_iter = expected.iter();
+
+        for token in tokens.tokens {
+            assert_eq!(token.t, *expected_iter.next().unwrap());
+        }
+    }
+
+    #[test]
+    fn test_token_types() {
+        let mut l = Lexer::new("+-*/!->()[]{}:");
+        let tokens = l.run();
+        let expected = vec![
+            TokenType::OpPlus,
+            TokenType::OpMinus,
+            TokenType::OpStar,
+            TokenType::OpForwSlash,
+            TokenType::OpExclamation,
+            TokenType::OpArrow,
+            TokenType::ParenL,
+            TokenType::ParenR,
+            TokenType::BracketL,
+            TokenType::BracketR,
+            TokenType::CurlyL,
+            TokenType::CurlyR,
+            TokenType::Colon,
+            TokenType::EOF,
+        ];
+
+        match_tokens(tokens, expected);
+    }
+
+    #[test]
+    fn skip_comments() {
+        let mut l = Lexer::new("# hello tests! I am here -> () #\n testing token # inline comment to eof");
+        let tokens = l.run();
+        let expected = vec![
+            TokenType::Literal,
+            TokenType::Literal,
+            TokenType::EOF,
+        ];
+
+        match_tokens(tokens, expected);
+    }
+}
