@@ -7,7 +7,7 @@ pub enum TokenType {
     Unknown,
     Identifier,
 
-    KeyType,
+    FieldType,
 
     TInt,
     TString,
@@ -257,7 +257,7 @@ impl<'a> Lexer<'a> {
         }
 
         let t = match value.as_ref() {
-            "type" => TokenType::KeyType,
+            "type" => TokenType::FieldType,
             "Int" => TokenType::TInt,
             "String" => TokenType::TString,
             _ => TokenType::Identifier,
@@ -464,7 +464,7 @@ mod tests {
         let mut l = Lexer::new(r#"type Movie """\n  \t  it's "" so good to be here\n""" "#);
         let tokens = l.run();
         let expected = vec![
-            TokenType::KeyType,
+            TokenType::FieldType,
             TokenType::Identifier,
             TokenType::DocString,
             TokenType::EOF,

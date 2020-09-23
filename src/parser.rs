@@ -7,13 +7,15 @@ use crate::{
 };
 
 pub struct Parser<'a> {
-    tokens: Peekable<TokenIter<'a>>
+    tokens: Peekable<TokenIter<'a>>,
+    model_identifiers: Vec<String>
 }
 
 impl<'a> Parser<'a> {
     pub fn new(tokens: &'a Tokens) -> Parser<'a> {
         Parser {
-            tokens: tokens.into_iter().peekable()
+            tokens: tokens.into_iter().peekable(),
+            model_identifiers: Vec::new()
         }
     }
 
@@ -46,7 +48,7 @@ impl<'a> Parser<'a> {
             return Ok(None);
         };
 
-        if token.t != TokenType::KeyType {
+        if token.t != TokenType::FieldType {
             return Err(ParseError::GenericError(TokenInfo { loc: token.loc }))
         }
 
@@ -66,6 +68,11 @@ impl<'a> Parser<'a> {
 
         let name = token.value.clone();
 
+        if self.model_identifiers.contains(&name) {
+            return Err(ParseError::DuplicateModelIdentifierError(TokenInfo { loc: token.loc }))
+        }
+
+
         self.tokens.next();
 
         token = if let Some(t) = self.tokens.peek() {
@@ -84,11 +91,13 @@ impl<'a> Parser<'a> {
 
         let fields = self.get_fields()?;
 
-        Ok(Some(ModelTypeDef { name, fields }))
+        self.model_identifiers.push(name.clone());
+        Ok(Some(ModelTypeDef { name, fields, ..Default::default() }))
     }
 
     fn get_fields(&mut self) -> ParseResult<Vec<FieldDef>> {
         let mut fields = Vec::new();
+        let mut field_names = Vec::new();
 
         let mut token = if let Some(t) = self.tokens.peek() {
             *t
@@ -98,23 +107,28 @@ impl<'a> Parser<'a> {
 
         while token.t != TokenType::CurlyR {
             if token.t != TokenType::Identifier {
-                return Err(ParseError::GenericError(TokenInfo { loc: token.loc }))
+                // identifier expected
+                return Err(ParseError::ExpectedFieldIdentifierError(TokenInfo { loc: token.loc }))
             }
 
             let name = token.value.clone();
 
+            if field_names.contains(&name) {
+                return Err(ParseError::DuplicateFieldIdentifierError(TokenInfo { loc: token.loc }))
+            }
+
             self.tokens.next();
 
             token = if let Some(t) = self.tokens.peek() {
                 *t
             } else {
                 // no type for field
-                return Err(ParseError::GenericError(TokenInfo { loc: token.loc }));
+                return Err(ParseError::MissingFieldTypeError(TokenInfo { loc: token.loc }));
             };
 
             if token.t != TokenType::Colon {
                 // need colon to indicate type
-                return Err(ParseError::GenericError(TokenInfo { loc: token.loc }));
+                return Err(ParseError::MissingColonError(TokenInfo { loc: token.loc }));
             }
 
             self.tokens.next();
@@ -123,17 +137,17 @@ impl<'a> Parser<'a> {
                 *t
             } else {
                 // no type for field
-                return Err(ParseError::GenericError(TokenInfo { loc: token.loc }));
+                return Err(ParseError::MissingFieldTypeError(TokenInfo { loc: token.loc }));
             };
+
+            // FIELD TYPE
 
             if !token_is_type(&token) {
                 // type does not exist in context
-                return Err(ParseError::GenericError(TokenInfo { loc: token.loc }));
+                return Err(ParseError::GenericFieldTypeError(TokenInfo { loc: token.loc }));
             }
 
             let field_type = token.value.clone();
-
-            fields.push(FieldDef { name, field_type });
 
             self.tokens.next();
 
@@ -141,8 +155,37 @@ impl<'a> Parser<'a> {
                 *t
             } else {
                 // no curly brace to end it
-                return Err(ParseError::GenericError(TokenInfo { loc: token.loc }));
+                return Err(ParseError::MissingRightBracketError(TokenInfo { loc: token.loc }));
             };
+
+            let mut field_required = false;
+
+            if token.t == TokenType::OpExclamation {
+                field_required = true;
+
+                self.tokens.next();
+
+                token = if let Some(t) = self.tokens.peek() {
+                    *t
+                } else {
+                    // no curly brace to end it
+                    return Err(ParseError::MissingRightBracketError(TokenInfo { loc: token.loc }));
+                };
+            }
+
+            // CONSTRUCT FIELD
+
+            field_names.push(name.clone());
+            fields.push(FieldDef { name, field_type, required: field_required, ..Default::default() });
+
+            // self.tokens.next();
+
+            // token = if let Some(t) = self.tokens.peek() {
+            //     *t
+            // } else {
+            //     // no curly brace to end it
+            //     return Err(ParseError::MissingRightBracketError(TokenInfo { loc: token.loc }));
+            // };
         }
        
         self.tokens.next();
