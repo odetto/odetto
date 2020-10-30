@@ -23,18 +23,32 @@ pub struct ModelTypeDef {
     pub annotation: Option<String>,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
+pub enum FieldType {
+    Scalar(String),
+    Identfier(String)
+}
+
+impl Default for FieldType {
+    fn default() -> Self { FieldType::Scalar(String::new()) }
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub enum FieldTypeType {
-    basic, // Int, String, Comment etc -> needs better name
-    array,
-    required_array
+    Basic, // Int, String, Comment etc -> needs better name
+    Array,
+    RequiredArray // [String!] not [String]! - exclamation inside not outside
+}
+
+impl Default for FieldTypeType {
+    fn default() -> Self { FieldTypeType::Basic }
 }
 
 // @todo remove default once annotations are complete
 #[derive(Clone, Debug, Default)]
 pub struct FieldDef {
     pub name: String,
-    pub field_type: String, // @todo could possibly use types from interpetors? Or leave as string and let the interpretor handle?
+    pub field_type: FieldType, // @todo could possibly use types from interpetors? Or leave as string and let the interpretor handle?
     pub type_type: FieldTypeType,
     pub required: bool,
     pub annotation: Option<String>,
@@ -48,7 +62,7 @@ impl fmt::Display for Root {
         for (_, m) in vec.iter().enumerate() {
             write!(f, "\tModel: {} [\n", m.name)?;
             for (_, d) in m.fields.iter().enumerate() {
-                write!(f, "\t\t{} : {}{}\n", d.name, d.field_type, if d.required == true { "!" } else { "" })?;
+                write!(f, "\t\t{} : {:?}{} - {:?}\n", d.name, d.field_type, if d.required == true { "!" } else { "" }, d.type_type)?;
             }
             write!(f, "\t]\n")?;
         }
