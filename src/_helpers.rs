@@ -3,7 +3,7 @@ use std::fmt;
 
 pub type ParseResult<T> = std::result::Result<T, ParseError>;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct TokenInfo {
     pub loc: (usize, usize)
 }
@@ -21,6 +21,7 @@ pub enum ParseError {
     MissingRightBracketError(TokenInfo),
     ExpectedFieldIdentifierError(TokenInfo),
     DuplicateFieldIdentifierError(TokenInfo),
+    MissingModelTypeError(TokenInfo),
     GenericError(TokenInfo)
 }
 
@@ -44,6 +45,7 @@ impl fmt::Display for ParseError {
             ParseError::MissingRightBracketError(ref info) => write!(f, "Missing '}}' to close the type definition: ({}, {})", info.loc.0, info.loc.1),
             ParseError::ExpectedFieldIdentifierError(ref info) => write!(f, "Expected a field identifier: ({}, {})", info.loc.0, info.loc.1),
             ParseError::DuplicateFieldIdentifierError(ref info) => write!(f, "Duplicate field identifier: ({}, {})", info.loc.0, info.loc.1),
+            ParseError::MissingModelTypeError(ref info) => write!(f, "Missing model type: ({}, {})", info.loc.0, info.loc.1),
             ParseError::GenericError(ref info) => write!(f, "Generic parsing error: ({}, {})", info.loc.0, info.loc.1)
         }
     }

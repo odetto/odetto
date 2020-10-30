@@ -60,9 +60,9 @@ impl fmt::Display for Root {
 
         write!(f, "[\n")?;
         for (_, m) in vec.iter().enumerate() {
-            write!(f, "\tModel: {} [\n", m.name)?;
+            write!(f, "\tModel: {}{} [\n", m.name, if let Some(a) = &m.annotation { format!(" '{}'", a) } else { String::new() })?;
             for (_, d) in m.fields.iter().enumerate() {
-                write!(f, "\t\t{} : {:?}{} - {:?}\n", d.name, d.field_type, if d.required == true { "!" } else { "" }, d.type_type)?;
+                write!(f, "\t\t{} : {:?}{} - {:?}{}\n", d.name, d.field_type, if d.required == true { "!" } else { "" }, d.type_type, if let Some(a) = &d.annotation { format!(" '{}'", a) } else { String::new() })?;
             }
             write!(f, "\t]\n")?;
         }

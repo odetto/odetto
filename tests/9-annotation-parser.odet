@@ -1,0 +1,20 @@
+"""
+this type is called Movie
+"""
+type Movie {
+    name: String
+    """
+    this is a description
+    """
+    description: String
+    rating: Int
+    comments: [Comment]
+}
+
+"""
+this type is comment
+"""
+type Comment {
+    id: Int
+    text: String
+}

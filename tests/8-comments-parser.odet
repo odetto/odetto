@@ -1,0 +1,12 @@
+type Movie {
+    name: String
+    description: String
+    rating: Int
+    comments: [Comment]
+}
+# cool comment here
+
+type Comment {
+    id: Int # another one here
+    text: String
+}

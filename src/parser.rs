@@ -8,14 +8,16 @@ use crate::{
 
 pub struct Parser<'a> {
     tokens: Peekable<TokenIter<'a>>,
-    model_identifiers: Vec<String>
+    model_identifiers: Vec<String>,
+    referenced_identifiers: Vec<(TokenInfo, String)>
 }
 
 impl<'a> Parser<'a> {
     pub fn new(tokens: &'a Tokens) -> Parser<'a> {
         Parser {
             tokens: tokens.into_iter().peekable(),
-            model_identifiers: Vec::new()
+            model_identifiers: Vec::new(),
+            referenced_identifiers: Vec::new()
         }
     }
 
@@ -38,15 +40,31 @@ impl<'a> Parser<'a> {
             }
         }
 
+        self.check_identifiers()?;
+
         Ok(root)
     }
 
     fn next_model(&mut self) -> ParseResult<Option<ModelTypeDef>> {
+        let mut annotation = None;
         let mut token = if let Some(t) = self.tokens.peek() {
             *t
         } else {
             return Ok(None);
         };
+
+        if token.t == TokenType::DocString {
+            annotation = Some(token.value.clone());
+
+            self.tokens.next();
+
+            token = if let Some(t) = self.tokens.peek() {
+                *t
+            } else {
+                // no type for field
+                return Err(ParseError::MissingFieldTypeError(TokenInfo { loc: token.loc }));
+            };
+        }
 
         if token.t != TokenType::FieldType {
             return Err(ParseError::GenericError(TokenInfo { loc: token.loc }))
@@ -92,7 +110,7 @@ impl<'a> Parser<'a> {
         let fields = self.get_fields()?;
 
         self.model_identifiers.push(name.clone());
-        Ok(Some(ModelTypeDef { name, fields, ..Default::default() }))
+        Ok(Some(ModelTypeDef { name, fields, annotation }))
     }
 
     fn get_fields(&mut self) -> ParseResult<Vec<FieldDef>> {
@@ -106,6 +124,20 @@ impl<'a> Parser<'a> {
         };
 
         while token.t != TokenType::CurlyR {
+            let mut annotation = None;
+
+            if token.t == TokenType::DocString {
+                annotation = Some(token.value.clone());
+                self.tokens.next();
+
+                token = if let Some(t) = self.tokens.peek() {
+                    *t
+                } else {
+                    // no type for field
+                    return Err(ParseError::MissingFieldTypeError(TokenInfo { loc: token.loc }));
+                };
+            }
+
             if token.t != TokenType::Identifier {
                 // identifier expected
                 return Err(ParseError::ExpectedFieldIdentifierError(TokenInfo { loc: token.loc }))
@@ -162,16 +194,7 @@ impl<'a> Parser<'a> {
             // CONSTRUCT FIELD
 
             field_names.push(name.clone());
-            fields.push(FieldDef { name, field_type, type_type, required: field_required, ..Default::default() });
-
-            // self.tokens.next();
-
-            // token = if let Some(t) = self.tokens.peek() {
-            //     *t
-            // } else {
-            //     // no curly brace to end it
-            //     return Err(ParseError::MissingRightBracketError(TokenInfo { loc: token.loc }));
-            // };
+            fields.push(FieldDef { name, field_type, type_type, required: field_required, annotation });
         }
        
         self.tokens.next();
@@ -185,9 +208,7 @@ impl<'a> Parser<'a> {
         let mut token = if let Some(t) = self.tokens.peek() {
             *t
         } else {
-            // no type for field
             return Err(ParseError::GenericFieldParsingError(None, String::from("Could not get next token when starting to parse field token type.")));
-            // return None
         };
 
         // if start of array
@@ -208,6 +229,7 @@ impl<'a> Parser<'a> {
         }
         else if token.t == TokenType::Identifier {
             field_type = FieldType::Identfier(token.value.clone());
+            self.referenced_identifiers.push((TokenInfo { loc: token.loc }, token.value.clone()))
         }
         else {
             return Err(ParseError::GenericFieldParsingError(Some(TokenInfo { loc: token.loc }), String::from("Field type could not be identified as scalar or identifier.")));
@@ -236,18 +258,24 @@ impl<'a> Parser<'a> {
 
             if token.t == TokenType::BracketR {
                 self.tokens.next();
-
-                // token = if let Some(t) = self.tokens.peek() {
-                //     *t
-                // } else {
-                //     return Err(ParseError::GenericFieldParsingError(Some(TokenInfo { loc: token.loc }), String::from("Could not get next token after required array field type found.")));
-                // };
             } else {
                 return Err(ParseError::GenericFieldParsingError(Some(TokenInfo { loc: token.loc }), String::from("Missing closing right bracket on field.")));
             }
         }
 
         Ok((field_type, type_type))
+    }
+
+    // reconcile types referenced within a field. 
+    // make sure the type referenced is defined within the file.
+    fn check_identifiers(&mut self) -> ParseResult<()> {
+        for ref_id in self.referenced_identifiers.iter() {
+            if !self.model_identifiers.contains(&ref_id.1) {
+                return Err(ParseError::MissingModelTypeError(ref_id.0.clone()))
+            }
+        }
+
+        Ok(())
     }
 
     // fn peek(&mut self) -> Option<&char> {

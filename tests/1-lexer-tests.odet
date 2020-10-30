@@ -16,7 +16,7 @@ type User {
     name: String
     age: Int
     """
-    what's up fam "" Just commin to you in the doc string
+    what's up fam "" Just comming to you in the doc string
     """
     fart_size: Int
 }
