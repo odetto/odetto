@@ -277,21 +277,6 @@ impl<'a> Parser<'a> {
 
         Ok(())
     }
-
-    // fn peek(&mut self) -> Option<&char> {
-    //     self.chars.peek()
-    // }
-
-    // fn advance(&mut self) -> Option<char> {
-    //     self.index += 1;
-    //     self.chars.next()
-    // }
-
-    // fn back(&mut self, index: usize) {
-    //     self.index = index - 1;
-    //     self.chars = self.orginal.chars().peekable();
-    //     self.chars.nth(index - 1);
-    // }
 }
 
 fn token_is_type(token: &Token) -> bool {

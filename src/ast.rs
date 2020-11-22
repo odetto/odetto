@@ -16,7 +16,7 @@ impl Root {
 }
 
 // @todo remove default once annotations are complete
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub struct ModelTypeDef {
     pub name: String,
     pub fields: Vec<FieldDef>,
@@ -29,10 +29,6 @@ pub enum FieldType {
     Identfier(String)
 }
 
-impl Default for FieldType {
-    fn default() -> Self { FieldType::Scalar(String::new()) }
-}
-
 #[derive(Clone, Debug, PartialEq)]
 pub enum FieldTypeType {
     Basic, // Int, String, Comment etc -> needs better name
@@ -40,18 +36,15 @@ pub enum FieldTypeType {
     RequiredArray // [String!] not [String]! - exclamation inside not outside
 }
 
-impl Default for FieldTypeType {
-    fn default() -> Self { FieldTypeType::Basic }
-}
-
 // @todo remove default once annotations are complete
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub struct FieldDef {
     pub name: String,
     pub field_type: FieldType, // @todo could possibly use types from interpetors? Or leave as string and let the interpretor handle?
     pub type_type: FieldTypeType,
     pub required: bool,
     pub annotation: Option<String>,
+    // pub location: (usize, usize),
 }
 
 impl fmt::Display for Root {
