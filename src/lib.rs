@@ -1,11 +1,4 @@
-// use std::fs;
-
-// pub use crate::{
-//     _helpers,
-//     lexer,
-//     parser,
-//     ast,
-// };
+#[macro_use] extern crate lazy_static;
 
 pub mod _helpers;
 pub mod lexer;

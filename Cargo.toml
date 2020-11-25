@@ -4,5 +4,14 @@ version = "0.1.0"
 authors = ["Tad Scritchfield <tadscritch@gmail.com>"]
 edition = "2018"
 
+[lib]
+name = "odetto"
+path = "src/lib.rs"
+
+[[bin]]
+name = "odetto-cli"
+path = "src/bin.rs"
+
 [dependencies]
 regex = "1"
+lazy_static = "1.4.0"

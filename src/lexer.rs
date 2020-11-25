@@ -380,9 +380,12 @@ impl<'a> Lexer<'a> {
 }
 
 fn is_valid_identifier(c: Option<&char>) -> bool {
+    lazy_static! {
+        static ref VALID_IDENTIFIER_REGEX: regex::Regex = regex::Regex::new(r#"[^\s\n\r0-9\+-/\*\^!#\(\)\{\}=\.,:;|"'\[\]]"#).unwrap();
+    }
+
     if let Some(c) = c {
-        regex::Regex::new(r#"[^\s\n\r0-9\+-/\*\^!#\(\)\{\}=\.,:;|"'\[\]]"#)
-            .unwrap()
+        VALID_IDENTIFIER_REGEX
             .is_match(&c.to_string())
     } else {
         false
@@ -390,9 +393,12 @@ fn is_valid_identifier(c: Option<&char>) -> bool {
 }
 
 fn is_special_identifier(c: Option<&char>) -> bool {
+    lazy_static! {
+        static ref SPECIAL_IDENTIFIER_REGEX: regex::Regex = regex::Regex::new(r"[->]").unwrap();
+    }
+
     if let Some(c) = c {
-        regex::Regex::new(r"[->]")
-            .unwrap()
+        SPECIAL_IDENTIFIER_REGEX
             .is_match(&c.to_string())
     } else {
         false
